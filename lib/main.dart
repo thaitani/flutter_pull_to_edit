@@ -40,8 +40,12 @@ class PullToEdit extends StatefulWidget {
   State<PullToEdit> createState() => _PullToEditState();
 }
 
+const editBoundary = 100;
+
 class _PullToEditState extends State<PullToEdit> {
   late ScrollController _controller;
+  bool isEdit = false;
+  bool isDragging = false;
   double negativeOffset = 0;
   @override
   void initState() {
@@ -49,6 +53,9 @@ class _PullToEditState extends State<PullToEdit> {
       ..addListener(() {
         setState(() {
           negativeOffset = min(_controller.offset, 0).abs().toDouble();
+          if (isDragging && negativeOffset > editBoundary) {
+            isEdit = !isEdit;
+          }
         });
       });
 
@@ -65,26 +72,36 @@ class _PullToEditState extends State<PullToEdit> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Container(
+        SizedBox(
           height: negativeOffset,
           width: MediaQuery.of(context).size.width,
-          color: Colors.amber,
           child: AnimatedOpacity(
-            opacity: negativeOffset > 150 ? 1 : 0,
-            duration: const Duration(milliseconds: 100),
-            child: const Icon(Icons.edit),
+            opacity: isEdit ? 1 : 0,
+            duration: const Duration(milliseconds: 200),
+            child: Container(
+              color: Colors.amber,
+              child: const Icon(Icons.edit),
+            ),
           ),
         ),
-        ListView.builder(
-          itemBuilder: (context, index) {
-            return SizedBox(
-              height: 100,
-              child: Center(
-                child: Text('item$index'),
-              ),
-            );
+        NotificationListener<ScrollUpdateNotification>(
+          onNotification: (notification) {
+            setState(() {
+              isDragging = notification.dragDetails != null;
+            });
+            return false;
           },
-          controller: _controller,
+          child: ListView.builder(
+            itemBuilder: (context, index) {
+              return SizedBox(
+                height: 100,
+                child: Center(
+                  child: Text('item$index'),
+                ),
+              );
+            },
+            controller: _controller,
+          ),
         ),
       ],
     );
